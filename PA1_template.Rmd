@@ -3,18 +3,172 @@
 
 ## Loading and preprocessing the data
 
+Open the zip file "activity.zip", and create a connection to the file
+"activity.csv" contained inside; read the CSV data from the connection into a
+data.frame called "activity".
 
+Add a factor column to the data.frame called called `weekday` with the levels
+`weekday` and `weekend`.  A few processing steps need to be taken on the `date`
+column to determine if each date is a weekend day or a weekday.
+
+1. Convert date values in Date class objects
+1. Convert Date class objects in a day name string (e.g. "Monday") using the
+`weekdays()` function
+1. Logically test with `ifelse()` to see if the day is "Sunday" or "Saturday"
+1. If the logic test is true, then use the value "weekend", else "weekday" to a
+new vector
+1. Factorize the new vector, and add it's contents to a new column in the
+`activity` data.frame called `weekday`.
+
+```{r}
+library(lattice)
+activity <- read.csv(
+    unz("activity.zip", filename="activity.csv")
+)
+activity$weekday <- factor(
+    ifelse(
+        ((weekdays(as.Date(activity$date)) == "Saturday") | 
+         (weekdays(as.Date(activity$date)) == "Sunday")),
+        "weekend", "weekday")
+)
+```
 
 ## What is mean total number of steps taken per day?
 
+Calculate steps per day with `by()` and `sum()`, use `sapply()` to convert the
+list returned by `by()` into a integer vector.  Calculate the `mean()` and
+`median()`, as well as generating a `hist()` plot of the total steps per day.
 
+Note that if the `na.rm=TRUE` argument is passed to sum, it will result in NAs
+being excluded from the sum of a particular day, where otherwise the sum for the
+day would result in an NA if any value is missing.  If the entire day contains
+only NAs, then sum calculates a `0` value, which is a little misleading when
+calculateing statistics on the summed vector.
+
+Alternatively, we can only drop NAs from the sum if there is at least one
+non-NA value in the day, which results in a step count that represents all the
+steps which were recorded.  For days that are all NAs, we could then indicate
+the day's step count sum as NA.  I will provide the result of using both
+methods.
+
+### NAs dropped while summing, and NA-only days resulting in 0
+
+```{r}
+stepsPerDay <- sapply(
+    with(activity,
+        by(steps, date, sum, na.rm=TRUE)
+    ),
+    function (x) x
+)
+mean(stepsPerDay)
+median(stepsPerDay)
+hist(stepsPerDay)
+```
+
+### NAs dropped only if there is at least one non-NA value
+
+```{r}
+stepsPerDay <- sapply(
+    with(activity,
+        by(steps, date, function (x) {
+            if (all(is.na(x))) {
+                return(NA)
+            }
+            else {
+                sum(x, na.rm=TRUE)
+            }
+        })
+    ),
+    function (x) x
+)
+mean(stepsPerDay, na.rm=TRUE)
+median(stepsPerDay, na.rm=TRUE)
+hist(stepsPerDay)
+```
+
+The assignment states "you can ignore the missing values in the dataset",
+but it does not prescribe how.  I saw two possible methods to ignore the missing
+values and presented both.  I believe the latter method to be more accurate,
+since it doesn't result in ignoring data from days that have some missing
+values.  In the next section, I will use the stepsPerDay from the second
+calculation method.
 
 ## What is the average daily activity pattern?
 
+To calcuate the average steps taken across all days at each interval I used the
+`by()` function, subsetting the data on each interval.  NAs are ignored.  The
+result of the `by()` function is an object of type `by` (similar to a `list`).
+Dereferencing this object with the `[]` operator returns a vector of the
+calculated steps, each corresponting to an interval.
 
+Rather than using the actual interval value on the X axis, I chose to use the
+index of the interval instead (e.g., interval 0 == index 0, interval 5 == index
+1, interval 100 == index 13).  The reason I did this is that the intervals jump
+from the value '55' to '100' to indicate an hour, which means the inerval is
+really a coded value where the first one or two digis are the hour, and the
+second two digits are the minutes of the hour.  This will create similar jumps
+on the graph from interval 55 to 100 which would appear as if 9 intervals had
+passed between two interval datapoints.  Using the index value instead solves
+this problem.  These jumps can be observed by changing the graphe type to
+points, and making your graph window really wide, while using the interval
+values along the X axis.
+
+```{r}
+intervals <- with(activity, by(steps, interval, mean, na.rm=TRUE))
+plot(intervals[], xlab="Interval (index)", ylab="Ave Steps", 
+     main="Average steps per day by interval", type="l")
+```
 
 ## Imputing missing values
 
+### Total missing values:
 
+```{r}
+missingSteps <- sum(is.na(activity$steps))
+print(missingSteps)
+```
 
+### Missing values by day:
+
+```{r}
+table(by(activity$steps, activity$date, function(x) { sum(is.na(x))} ))
+```
+
+It looks like 53 days have no missing step data, and 8 days are missing all step
+data.  No days have only partial data.
+
+### Missing value strategy
+
+Fill in missing values per interval with the mean of the interval.  Iterate
+over each interval using the `by()` function.  Using the `ifelse()`
+function, selectively replace NAs with the mean of that interval.  The resulting
+by object will by in list form, where each index of the list is the interval
+(e.g. `iSteps[["0"]], iSteps[["5"]] for intervals 0 and 5).  Using a for loop,
+replace each interval in the activity data.frame with the values in iSteps.
+
+```{r}
+iSteps <- with(activity,
+     by(steps, interval, function (x) {
+         ifelse(
+                is.na(x),
+                as.integer(mean(x, na.rm=TRUE)),
+                x)
+     })
+)
+for (i in names(iSteps)) activity$steps[activity$interval == i] <- iSteps[[i]]
+```
+
+Total steps per day after filling in the missing data
+
+```{r}
+stepsPerDay <- sapply(
+    with(activity,
+        by(steps, date, sum)
+    ),
+    function (x) x
+)
+mean(stepsPerDay, na.rm=TRUE)
+median(stepsPerDay, na.rm=TRUE)
+hist(stepsPerDay)
+```
 ## Are there differences in activity patterns between weekdays and weekends?
