@@ -20,7 +20,8 @@ new vector
 1. Factorize the new vector, and add it's contents to a new column in the
 `activity` data.frame called `weekday`.
 
-```{r}
+
+```r
 library(lattice)
 activity <- read.csv(
     unz("activity.zip", filename="activity.csv")
@@ -53,7 +54,8 @@ methods.
 
 ### NAs dropped while summing, and NA-only days resulting in 0
 
-```{r}
+
+```r
 stepsPerDay <- sapply(
     with(activity,
         by(steps, date, sum, na.rm=TRUE)
@@ -61,13 +63,30 @@ stepsPerDay <- sapply(
     function (x) x
 )
 mean(stepsPerDay)
+```
+
+```
+## [1] 9354
+```
+
+```r
 median(stepsPerDay)
+```
+
+```
+## [1] 10395
+```
+
+```r
 hist(stepsPerDay)
 ```
 
+![plot of chunk unnamed-chunk-2](figure/unnamed-chunk-2.png) 
+
 ### NAs dropped only if there is at least one non-NA value
 
-```{r}
+
+```r
 stepsPerDay <- sapply(
     with(activity,
         by(steps, date, function (x) {
@@ -82,9 +101,25 @@ stepsPerDay <- sapply(
     function (x) x
 )
 mean(stepsPerDay, na.rm=TRUE)
+```
+
+```
+## [1] 10766
+```
+
+```r
 median(stepsPerDay, na.rm=TRUE)
+```
+
+```
+## [1] 10765
+```
+
+```r
 hist(stepsPerDay)
 ```
+
+![plot of chunk unnamed-chunk-3](figure/unnamed-chunk-3.png) 
 
 The assignment states "you can ignore the missing values in the dataset",
 but it does not prescribe how.  I saw two possible methods to ignore the missing
@@ -110,13 +145,18 @@ on the graph from interval 55 to 100 which would appear as if 9 intervals had
 passed between two interval datapoints.  Using the index value instead solves
 this problem.  These jumps can be observed by changing the graph type to
 points, and making your graph window really wide, while using the interval
-values along the X axis. Note that this results in the x value range being 1 to
-288 instead of 0 to 2355, but is representing the same thing.
+values along the X axis.
 
-```{r}
+
+```r
 intervals <- with(activity, by(steps, interval, mean, na.rm=TRUE))
 plot(intervals[], xlab="Interval (index)", ylab="Ave Steps", 
      main="Average steps per day by interval", type="l")
+```
+
+![plot of chunk unnamed-chunk-4](figure/unnamed-chunk-4.png) 
+
+```r
 for (interval in names(intervals[]))
      if (max(intervals[]) == intervals[interval])
          print(paste(
@@ -124,19 +164,35 @@ for (interval in names(intervals[]))
              "with a value of:", intervals[interval]))
 ```
 
+```
+## [1] "Average daily interval with the most steps: 835 with a value of: 206.169811320755"
+```
+
 ## Inputing missing values
 
 ### Total missing values:
 
-```{r}
+
+```r
 missingSteps <- sum(is.na(activity$steps))
 print(missingSteps)
 ```
 
+```
+## [1] 2304
+```
+
 ### Missing values by day:
 
-```{r}
+
+```r
 table(by(activity$steps, activity$date, function(x) { sum(is.na(x))} ))
+```
+
+```
+## 
+##   0 288 
+##  53   8
 ```
 
 It looks like 53 days have no missing step data, and 8 days are missing all step
@@ -157,7 +213,8 @@ cleanActivity with the vector in iSteps, however I was worried they wouldn't be
 in exactly the same order.  To be on the safe side I used the for loop with
 explicit indexing)
 
-```{r}
+
+```r
 iSteps <- with(activity,
      by(steps, interval, function (x) {
          ifelse(
@@ -173,7 +230,8 @@ for (i in names(iSteps))
 
 Total steps per day after filling in the missing data
 
-```{r}
+
+```r
 stepsPerDay <- sapply(
     with(cleanActivity,
         by(steps, date, sum)
@@ -181,9 +239,25 @@ stepsPerDay <- sapply(
     function (x) x
 )
 mean(stepsPerDay, na.rm=TRUE)
+```
+
+```
+## [1] 10750
+```
+
+```r
 median(stepsPerDay, na.rm=TRUE)
+```
+
+```
+## [1] 10641
+```
+
+```r
 hist(stepsPerDay)
 ```
+
+![plot of chunk unnamed-chunk-8](figure/unnamed-chunk-8.png) 
 
 These values appear to be pretty close to the second method of ignoring the NAs
 shown above, but are a little lower.
@@ -214,7 +288,8 @@ the same thing.
 4. In addition to the plots, I found that a summarization of the weekend and
 weekday data underscores the difference between the walking patters.
 
-```{r}
+
+```r
 aveStepsDayList <- with(cleanActivity, by(steps, list(weekday, interval), mean))
 aveStepsDay <- rbind(
     data.frame(
@@ -229,5 +304,20 @@ aveStepsDay <- rbind(
     )
 )
 xyplot(steps ~ interval | weekday, data=aveStepsDay, layout=c(1,2), type="l")
+```
+
+![plot of chunk unnamed-chunk-9](figure/unnamed-chunk-9.png) 
+
+```r
 with(aveStepsDay, tapply(steps, weekday, summary))
+```
+
+```
+## $weekday
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##    0.00    2.16   25.70   35.60   50.80  230.00 
+## 
+## $weekend
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##    0.00    1.19   32.30   42.30   74.60  167.00
 ```
