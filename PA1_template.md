@@ -145,14 +145,19 @@ on the graph from interval 55 to 100 which would appear as if 9 intervals had
 passed between two interval datapoints.  Using the index value instead solves
 this problem.  These jumps can be observed by changing the graph type to
 points, and making your graph window really wide, while using the interval
-values along the X axis. Note that this results in the x value range being 1 to
-288 instead of 0 to 2355, but is representing the same thing.
+values along the X axis. The X axis can then be marked after plotting by
+disabling axes generation in `plot()`, and drawing them with `axis()`.
 
 
 ```r
 intervals <- with(activity, by(steps, interval, mean, na.rm=TRUE))
 plot(intervals[], xlab="Interval (index)", ylab="Ave Steps", 
-     main="Average steps per day by interval", type="l")
+     main="Average steps per day by interval", type="l", axes=FALSE)
+axis(1,
+     labels=names(intervals[])[seq(from=1, to=288, by=60)], 
+     at=seq(from=0, to=288, by=60)
+     )
+axis(2)
 ```
 
 ![plot of chunk unnamed-chunk-4](figure/unnamed-chunk-4.png) 
@@ -284,7 +289,8 @@ rbind.
 using the index of the interval, rather than the actual interval value as before
 since the interval values jump at the edge of each hour.  Note that this results
 in the x value range being 1 to 288 instead of 0 to 2355, but is representing
-the same thing.
+the same thing.  I don't know how to do the axes relabeling trick with lattice
+:(
 
 4. In addition to the plots, I found that a summarization of the weekend and
 weekday data underscores the difference between the walking patters.
