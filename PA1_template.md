@@ -145,7 +145,8 @@ on the graph from interval 55 to 100 which would appear as if 9 intervals had
 passed between two interval datapoints.  Using the index value instead solves
 this problem.  These jumps can be observed by changing the graph type to
 points, and making your graph window really wide, while using the interval
-values along the X axis.
+values along the X axis. Note that this results in the x value range being 1 to
+288 instead of 0 to 2355, but is representing the same thing.
 
 
 ```r
